@@ -22,6 +22,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import java.io.File;
 import java.io.IOException;
@@ -63,8 +64,10 @@ public class EdenCamActivity extends Activity {
     //queue for the bitmap memory-cached keys
     public Queue<String> cachedKeyQueue = new PriorityQueue<String>();
     public int MAXCACHENUM = 5;
+    private Button closeButton;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+    
         //caching setup 
     	final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
         final int cacheSize = maxMemory / 8;
@@ -75,6 +78,7 @@ public class EdenCamActivity extends Activity {
                 // number of items.
                 return bitmap.getByteCount() / 1024;
             }
+            
         };
 
         // Hide the window title.
@@ -298,7 +302,6 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
                     canvas.drawBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.facebook_logo), topLeftX - boxWidth - padding, topLeftY, null);
                 	}
                 }
-
          
             }
         }
