@@ -11,6 +11,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.Size;
@@ -34,7 +35,10 @@ import android.media.FaceDetector.Face;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -66,8 +70,11 @@ public class EdenCamActivity extends Activity {
     //action class after face is captured.
     private FaceCapture faceCapture;
     
+    //Face tracker
+    public int faceTracker = 0;
+    
     //queue for the bitmap memory-cached keys
-    public Queue<String> cachedKeyQueue = new PriorityQueue<String>();
+    public ArrayDeque<String> cachedKeyQueue = new ArrayDeque<String>();
     public int MAXCACHENUM = 5;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -189,6 +196,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
 
         cvClearMemStorage(storage);
         faces = cvHaarDetectObjects(grayImage, classifier, storage, 1.1, 3, CV_HAAR_DO_CANNY_PRUNING);
+        eContext.faceTracker = faces.total();
         postInvalidate();
     }
 
@@ -216,20 +224,55 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
     	return fcoords;
     }
     
-    @Override
+    @SuppressLint("DrawAllocation")
+	@Override
     protected void onDraw(Canvas canvas) {
-    	//Draw the icon images 
-    	
-    	Paint paint = new Paint();
+        Paint paint = new Paint();
         paint.setColor(Color.BLUE);
         paint.setTextSize(40);
-        
-        String s = "Eden";
+        paint.setAntiAlias(true);
+
+
+        String s = "Project Eden Baby";
         float textWidth = paint.measureText(s);
         canvas.drawText(s, (getWidth()-textWidth)/2, 40, paint);
+        int mainPad = 30;
+        int mainPad2 = 10;
+        int mainHeight = 96;
+        int mainWidth = 128;
+        int mainTopX = 20;
+        int mainTopY = 20;
+        int mainBotX = mainTopX + mainWidth;
+        int mainBotY = mainTopY + mainHeight;
+        paint.setStrokeWidth(3);
+        paint.setStyle(Paint.Style.STROKE);
+        if (eContext.cachedKeyQueue.size() != 0 && faces != null) {
+            //align the icons from images cached in memory
+            //create a queue iterator
+            //iterate through eContext.cachedKeyQueue
+        	
+        	Iterator<String> it = eContext.cachedKeyQueue.iterator();
+            while (it.hasNext())
+                {
+                    paint.setARGB(120,216,216,216);
+                    canvas.drawRect(mainTopX-mainPad2, mainTopY-mainPad2, mainBotX+mainPad2, mainBotY+mainPad2, paint);
+            
+                    Bitmap img = eContext.getBitmapFromMemCache(it.next());
+                    Rect box = new Rect(mainTopX, mainTopY, mainBotX, mainBotY);
+                    canvas.drawBitmap(img, null, box, null);
+        
+                    mainTopY += mainHeight + mainPad;
+                    mainBotY += mainHeight + mainPad;
+                }
+      
+            //canvas.drawBitmap(bitmap, src, dst, paint)
+        }
+
+
         
         if (faces != null) {
             float padding = 20;
+        
             paint.setStrokeWidth(4);
             paint.setStyle(Paint.Style.STROKE);
             float scaleX = (float)getWidth()/grayImage.width();
@@ -249,24 +292,34 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
                 botRightX = (x+w)*scaleX;
                 botRightY = (y+h)*scaleY;
                 faceWidth = botRightX - topLeftX;
-                paint.setColor(Color.GREEN);
+                //paint.setColor(Color.GREEN);
+                paint.setARGB(120,216,216,216);
+                
                 canvas.drawRect(topLeftX, topLeftY, botRightX, botRightY, paint);
                 // Draw on left or right of face
-                paint.setColor(Color.BLUE);
+                //paint.setColor(Color.BLUE);
                 if ((topLeftX + boxWidth + faceWidth + padding) < (float)getWidth()) {
-                    canvas.drawRect(topLeftX + faceWidth + padding, topLeftY, 
-                                    topLeftX + boxWidth + faceWidth + padding, topLeftY + boxHeight, paint);
+                    for (int j = 0; j < 30; j++)
+                        {
+                            //canvas.drawRect(topLeftX + faceWidth + padding, topLeftY, 
+                            //topLeftX + boxWidth + faceWidth + padding, topLeftY + boxHeight, paint);
+                            //canvas.drawBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.facebook_logo), topLeftX + faceWidth + padding, topLeftY, null);
+                        }
                 }
                 else {
-                    canvas.drawRect(topLeftX - boxWidth - padding, topLeftY, 
-                                    botRightX - faceWidth - padding, topLeftY + boxHeight, paint);
+                    for (int j = 0; j < 30; j++)
+                        {
+                            //canvas.drawRect(topLeftX - boxWidth - padding, topLeftY, 
+                            //botRightX - faceWidth - padding, topLeftY + boxHeight, paint);
+                            //canvas.drawBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.facebook_logo), topLeftX - boxWidth - padding, topLeftY, null);
+                        }
                 }
          
             }
-        
         }
     }
 }
+
 class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
     SurfaceHolder mHolder;
     Camera mCamera;
@@ -294,7 +347,7 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
         
         int action1 = e.getAction();
         //take picture when the pressure releases
-        if (action1 == MotionEvent.ACTION_UP) {
+        if (action1 == MotionEvent.ACTION_UP && mainContext.faceTracker != 0) {
             mCamera.takePicture(null, null, pictureCallback);
         }
     	
@@ -320,22 +373,31 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
                 
                 int qSize = mainContext.cachedKeyQueue.size();
                 
-                if (qSize != mainContext.MAXCACHENUM) {
-                	//add the preview frame to cache
-                	Log.d("CACHE NOT FULL","CACHE NOT FULL!");
-                	mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
-                	mainContext.cachedKeyQueue.add(String.valueOf(keyCounter));
+                
+                
+                if (qSize < mainContext.MAXCACHENUM) {
+                    //add the preview frame to cache
+                    Log.d("CACHE NOT FULL","CACHE NOT FULL!");
+                    mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
+                    mainContext.cachedKeyQueue.addLast(String.valueOf(keyCounter));
                 } else {
-                	//shift the list from top to bottom
-                	//remove the early preview and add the lastest one
-                	Log.d("CACHE FULL","REMOVING ELEMENTS!");
-                	String removeKey = mainContext.cachedKeyQueue.poll();
-                	mainContext.removeBitmapFromMemCache(removeKey);
+                    //shift the list from top to bottom
+                    //remove the early preview and add the lastest one
+                    Log.d("CACHE FULL",String.valueOf(keyCounter));
+                    String removeKey = mainContext.cachedKeyQueue.pollFirst();
+                    mainContext.removeBitmapFromMemCache(removeKey);
                 	
-                	//add new key pair at the end
-                	mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
-                	mainContext.cachedKeyQueue.add(String.valueOf(keyCounter));
+                    //add new key pair at the end
+                    mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
+                    mainContext.cachedKeyQueue.addLast(String.valueOf(keyCounter));
                 }
+              //DEBUG
+                Iterator<String>  it = mainContext.cachedKeyQueue.iterator();
+                while  (it.hasNext()) {
+                	Log.d("image",String.valueOf(it.next()));
+                }
+                Log.d("SizeQQ", String.valueOf(mainContext.cachedKeyQueue.size()));
+                
                 keyCounter++;
             }
         };
