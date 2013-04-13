@@ -72,7 +72,7 @@ public class EdenCamActivity extends Activity {
     public boolean isStarted = false;
     
     //UI
-    public static Rect rect_face_reg; 
+     
     int counter_display = 0;
     AlertDialog alert_dialog;
     public static int screensize_x = 1280;
@@ -87,7 +87,7 @@ public class EdenCamActivity extends Activity {
     	info_list.add("Aerobatic Gymnastics");
     }
 	public int boxX1 = -1, boxY1 = -1, boxX2 = -1, boxY2 = -1;
-    
+	public static Rect rect_face_reg;
     public void displayDialog(int center_x, int center_y, int x, int y) {
         if (counter_display==0) {
             addItem();
