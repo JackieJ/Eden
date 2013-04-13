@@ -3,6 +3,7 @@ package com.project.eden;
 
 
 import android.os.Bundle;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -52,6 +53,7 @@ import static com.googlecode.javacv.cpp.opencv_objdetect.*;
 import static com.googlecode.javacv.cpp.opencv_highgui.*;
 
 
+@SuppressLint("NewApi")
 public class EdenCamActivity extends Activity {
 	
     //memory cache for bitmap
@@ -62,7 +64,10 @@ public class EdenCamActivity extends Activity {
     private FaceRecognition faceReco;
     //action class after face is captured.
     private FaceCapture faceCapture;
-
+    
+    //queue for the bitmap memory-cached keys
+    public Queue<String> cachedKeyQueue;
+    public int MAXCACHENUM = 5;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //caching setup 
@@ -99,6 +104,8 @@ public class EdenCamActivity extends Activity {
     }
 	
     //bitmap memory cache handling
+    //Current: the keys are numbers 
+    //TODO: the keys should be the meta data scraped by the facebook API
     public void addBitmapToMemoryCache(String key, Bitmap bitmap) {
         if (getBitmapFromMemCache(key) == null) {
             mMemoryCache.put(key, bitmap);
@@ -111,9 +118,9 @@ public class EdenCamActivity extends Activity {
     }
 	
     public Bitmap removeBitmapFromMemCache(String key) {
-        return mMemoryCache.remove(key);
+    	return mMemoryCache.remove(key);
     }
-	
+    
 }
 
 class FaceRecognition extends View implements Camera.PreviewCallback {
@@ -125,7 +132,6 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
     private CvHaarClassifierCascade classifier;
     private CvMemStorage storage;
     private CvSeq faces;
-    
     EdenCamActivity eContext;
     
     public FaceRecognition(EdenCamActivity context) throws IOException {
@@ -211,14 +217,20 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
     
     @Override
     protected void onDraw(Canvas canvas) {
+    	//Draw the icon images 
+    	
     	Paint paint = new Paint();
         paint.setColor(Color.BLUE);
         paint.setTextSize(40);
-
+        
+        if (eContext.getBitmapFromMemCache(String.valueOf(0)) != null && faces != null) {
+        	//align the icons from images cached in memory
+        	
+        }
         String s = "Project Eden Baby";
         float textWidth = paint.measureText(s);
         canvas.drawText(s, (getWidth()-textWidth)/2, 40, paint);
-
+        
         if (faces != null) {
             float padding = 20;
             paint.setStrokeWidth(4);
@@ -263,12 +275,9 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
     Camera mCamera;
     Camera.PreviewCallback previewCallback;
     EdenCamActivity mainContext;
-    int MAXICONNUM = 4;
-    int iconCounter;
-    
+    private int keyCounter = 0;
     FaceCapture(Context context, Camera.PreviewCallback previewCallback) {
         super(context);
-        iconCounter = 0;
         mainContext = (EdenCamActivity) context;
         this.previewCallback = previewCallback;
         // Install a SurfaceHolder.Callback so we get notified when the
@@ -306,19 +315,27 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
 			
                 //decode raw bytes to bitmap format
                 Bitmap loadImage = BitmapFactory.decodeByteArray(data, 0, data.length);
-                if (iconCounter > MAXICONNUM) {
-                    //remove the first cached image and add the current one to the end
-                    Log.d("Shifting", "Hit the MAX, remove values");
-                    iconCounter--;
-                    mainContext.removeBitmapFromMemCache(String.valueOf(iconCounter));
-                    mainContext.addBitmapToMemoryCache(String.valueOf(iconCounter), loadImage);
-                    iconCounter++;
-				
+                /*************************/
+                /* Image Comparison TODO */
+                /*************************/
+                
+                int qSize = mainContext.cachedKeyQueue.size();
+                
+                if (qSize != mainContext.MAXCACHENUM) {
+                	//add the preview frame to cache
+                	mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
+                	mainContext.cachedKeyQueue.add(String.valueOf(keyCounter));
                 } else {
-                    Log.d("CACHING", "CACHING");
-                    mainContext.addBitmapToMemoryCache(String.valueOf(iconCounter), loadImage);
-                    iconCounter++;
+                	//shift the list from top to bottom
+                	//remove the early preview and add the lastest one
+                	String removeKey = mainContext.cachedKeyQueue.poll();
+                	mainContext.removeBitmapFromMemCache(removeKey);
+                	
+                	//add new key pair at the end
+                	mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
+                	mainContext.cachedKeyQueue.add(String.valueOf(keyCounter));
                 }
+                keyCounter++;
             }
         };
 

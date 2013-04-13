@@ -112,6 +112,7 @@ int layout com_facebook_usersettingsfragment 0x7f03000e
 int menu eden_cam 0x7f090000
 int menu main 0x7f090001
 int string action_settings 0x7f05001a
+int string app_id 0x7f05001e
 int string app_name 0x7f050019
 int string button_enter 0x7f05001b
 int string com_facebook_choose_friends 0x7f05000f
@@ -139,7 +140,6 @@ int string com_facebook_requesterror_web_login 0x7f050014
 int string com_facebook_usersettingsfragment_log_in_button 0x7f050008
 int string com_facebook_usersettingsfragment_logged_in 0x7f050009
 int string com_facebook_usersettingsfragment_not_logged_in 0x7f05000a
-int string hello_world 0x7f05001e
 int string main_title 0x7f05001c
 int string title_activity_eden_cam 0x7f05001d
 int style AppBaseTheme 0x7f080002
