@@ -172,16 +172,40 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
         canvas.drawText(s, (getWidth()-textWidth)/2, 40, paint);
 
         if (faces != null) {
+        	float padding = 20;
+        	
             paint.setStrokeWidth(4);
             paint.setStyle(Paint.Style.STROKE);
             float scaleX = (float)getWidth()/grayImage.width();
             float scaleY = (float)getHeight()/grayImage.height();
+            float topLeftX, topLeftY, botRightX, botRightY;
+            float faceWidth;
+            float x,y,w,h;
+            float boxWidth = 150;
+            float boxHeight = 150;
             int total = faces.total();
             for (int i = 0; i < total; i++) {
                 CvRect r = new CvRect(cvGetSeqElem(faces, i));
-                int x = r.x(), y = r.y(), w = r.width(), h = r.height();
+                x = r.x(); y = r.y(); w = r.width(); 
+                h = r.height();
+                topLeftX = x*scaleX;
+                topLeftY = y*scaleY;
+                botRightX = (x+w)*scaleX;
+                botRightY = (y+h)*scaleY;
+                faceWidth = botRightX - topLeftX;
                 paint.setColor(Color.GREEN);
-                canvas.drawRect(x*scaleX, y*scaleY, (x+w)*scaleX, (y+h)*scaleY, paint);
+                canvas.drawRect(topLeftX, topLeftY, botRightX, botRightY, paint);
+                // Draw on left or right of face
+                paint.setColor(Color.BLUE);
+                if ((topLeftX + boxWidth + faceWidth + padding) < (float)getWidth()) {
+                	canvas.drawRect(topLeftX + faceWidth + padding, topLeftY, 
+                					topLeftX + boxWidth + faceWidth + padding, topLeftY + boxHeight, paint);
+                }
+                else {
+                	canvas.drawRect(topLeftX - boxWidth - padding, topLeftY, 
+                					botRightX - faceWidth - padding, topLeftY + boxHeight, paint);
+                }
+         
             }
         }
     }
