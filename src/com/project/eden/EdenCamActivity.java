@@ -72,6 +72,7 @@ public class EdenCamActivity extends Activity {
     public boolean isStarted = false;
     
     //UI
+    public static Rect rect_face_reg; 
     int counter_display = 0;
     AlertDialog alert_dialog;
     public static int screensize_x = 1280;
@@ -252,6 +253,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
     private CvSeq faces;
     EdenCamActivity eContext;
     
+    
     public FaceRecognition(EdenCamActivity context) throws IOException {
         super(context);
         eContext = context;
@@ -360,6 +362,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
             //create a queue iterator
             //iterate through eContext.cachedKeyQueue
         	
+        	// Create Sidebar
             Iterator<String> it = eContext.cachedKeyQueue.iterator();
             while (it.hasNext())
                 {
@@ -392,10 +395,27 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
             float boxWidth = 150;
             float boxHeight = 150;
             int total = faces.total();
+            float tx = -1, ty = -1, tw = -1, th = -1;
+            
             for (int i = 0; i < total; i++) {
-                CvRect r = new CvRect(cvGetSeqElem(faces, i));
-                x = r.x(); y = r.y(); w = r.width(); 
+            	CvRect r = new CvRect(cvGetSeqElem(faces, i));
+            	x = r.x(); 
+            	y = r.y(); 
+            	w = r.width(); 
                 h = r.height();
+                if (w*h > tw*th) {
+                	tw = w;
+                	th = h;
+                	tx = x;
+                	ty = y;
+                }
+            }
+                x = tx;
+                y = ty;
+                w = tw;
+                h = th;
+                if (x != -1 && y != -1 && w != -1 && h != -1)
+                {
                 topLeftX = x*scaleX;
                 topLeftY = y*scaleY;
                 botRightX = (x+w)*scaleX;
@@ -405,6 +425,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
                 paint.setARGB(120,216,216,216);
                 
                 canvas.drawRect(topLeftX, topLeftY, botRightX, botRightY, paint);
+                eContext.rect_face_reg = new Rect((int)topLeftX, (int)topLeftY, (int)botRightX, (int)botRightY);
                 // Draw on left or right of face
                 //paint.setColor(Color.BLUE);
                 paint.setARGB(180,236,236,236);
@@ -419,8 +440,9 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
                 String faceStatus = "Single";
                 String faceInterests = "Aerobatic Gymnastics";
                 paint.setTypeface(face);
+                
                 if ((topLeftX + boxWidth + faceWidth + padding) < (float)getWidth()) {
-                    for (int j = 0; j < 30; j++)
+                    //for (int j = 0; j < 30; j++)
                         {
                             //canvas.drawRect(topLeftX + faceWidth + padding, topLeftY, 
                             //topLeftX + boxWidth + faceWidth + padding, topLeftY + boxHeight, paint);
@@ -431,9 +453,9 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
                         	canvas.drawText(faceInterests, topLeftX + faceWidth + padding, topLeftY+padding*9, paint);
 
                         }
-                }
+                	}
                 else {
-                    for (int j = 0; j < 30; j++)
+                    //for (int j = 0; j < 30; j++)
                         {
                             //canvas.drawRect(topLeftX - boxWidth - padding, topLeftY, 
                             //botRightX - faceWidth - padding, topLeftY + boxHeight, paint);
@@ -446,6 +468,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
 
                         }
                 }
+                }
                 eContext.isStarted = true;
                 eContext.boxX1 = (int)(w*scaleX);
                 eContext.boxY1 = (int)(h*scaleY);
@@ -455,7 +478,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
             }
         }
     }
-}
+
 class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
     SurfaceHolder mHolder;
     Camera mCamera;
@@ -471,7 +494,11 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
         mHolder = getHolder();
         mHolder.addCallback(this);
     }
-    
+    Rect rect1 = new Rect(10,10,148,116);
+    Rect rect2 = new Rect(10,126,148,252);
+    Rect rect3 = new Rect(10,242,148,388);
+    Rect rect4 = new Rect(10,358,148,524);
+    Rect rect5 = new Rect(10,474,148,660);
     //touch the designated area to trigger picture event
     @Override
     public boolean onTouchEvent(MotionEvent e) {
@@ -479,6 +506,47 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
         float x = e.getX();
         float y = e.getY();
         
+        if(mainContext.cachedKeyQueue.size()==1){
+        	if (rect1.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10151352918320723&set=oa.441715655907536&type=1&theater");
+        	}
+        } else if (mainContext.cachedKeyQueue.size()==2) {
+        	if (rect1.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10151352918320723&set=oa.441715655907536&type=1&theater");
+        	} else if (rect2.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10200591369440018&set=oa.441715655907536&type=1&theater");
+        	}
+        } else if (mainContext.cachedKeyQueue.size()==3) {
+        	if (rect1.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10151352918320723&set=oa.441715655907536&type=1&theater");
+        	} else if (rect2.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10200591369440018&set=oa.441715655907536&type=1&theater");
+        	} else if (rect3.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=976799309646&set=oa.441715655907536&type=1&theater");
+        	}
+        } else if (mainContext.cachedKeyQueue.size()==4) {
+        	if (rect1.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10151352918320723&set=oa.441715655907536&type=1&theater");
+        	} else if (rect2.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10200591369440018&set=oa.441715655907536&type=1&theater");
+        	} else if (rect3.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=976799309646&set=oa.441715655907536&type=1&theater");
+        	} else if (rect4.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10151304240820988&set=oa.441715655907536&type=1&theater");
+        	}
+        } else if (mainContext.cachedKeyQueue.size()==5) {
+        	if (rect1.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10151352918320723&set=oa.441715655907536&type=1&theater");
+        	} else if (rect2.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10200591369440018&set=oa.441715655907536&type=1&theater");
+        	} else if (rect3.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=976799309646&set=oa.441715655907536&type=1&theater");
+        	} else if (rect4.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10151304240820988&set=oa.441715655907536&type=1&theater");
+        	} else if (rect5.contains((int)x,(int)y)) {
+        		mainContext.viewOnFacebook("https://www.facebook.com/photo.php?fbid=10200938171801255&set=oa.441715655907536&type=1&theater");
+        	}
+        }
         
         //retrieve desired position
         
@@ -489,8 +557,10 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
             		mainContext.boxX2 != -1 &&
             		mainContext.boxY1 != -1 &&
             		mainContext.boxY2 != -1) {
+        		if (mainContext.rect_face_reg.contains((int)x, (int)y)) {
             	mainContext.displayDialog(mainContext.boxX1, mainContext.boxY1, mainContext.boxX2, mainContext.boxY2);
-            }
+        		}
+        		}
             
         	mCamera.takePicture(null, null, pictureCallback);
         }
