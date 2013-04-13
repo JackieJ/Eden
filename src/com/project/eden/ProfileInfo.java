@@ -6,7 +6,7 @@ import org.json.JSONObject;
 import android.graphics.Bitmap;
 
 public class ProfileInfo {
-	Bitmap profile_picture;
+	public Bitmap profile_picture;
 	String id;
 	String name;
 	String education;
@@ -24,9 +24,12 @@ public class ProfileInfo {
 			this.id = json.getString("id");
 			this.name = json.getString("name");
 			
+			// getting education 
+			
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
 		
 	}
+	
 }

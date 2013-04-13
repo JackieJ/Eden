@@ -32,49 +32,39 @@ import com.facebook.model.*;
 
 public class EdenMain extends Activity {
 
-					// id  , person
-	private LruCache<String, ProfileInfo> mMemoryCache;
-	private ImageView mImageView;
-	
+    private static final String DISK_CACHE_SUBDIR = "peoplepictures";
+    private static final int DISK_CACHE_SIZE = 1024 * 1024 * 10;
+    		
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 	    super.onCreate(savedInstanceState);
 	    setContentView(R.layout.activity_main);
 	    
-	    final EdenMain oncreate = this;
-	    
-	    final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
-		final int cacheSize = maxMemory / 8;
-	    
-		mMemoryCache = new LruCache<String, ProfileInfo>(cacheSize) {
-	        @SuppressLint("NewApi")
-			@Override
-	        protected int sizeOf(String key, ProfileInfo profile) {
-	            // The cache size will be measured in kilobytes rather than
-	            // number of items.
-	            return profile.profile_picture.getByteCount() / 1024;
-	        }
-	    };
+	    final EdenMain oncreate = this;	// used for contexts
+	    final DiskLruImageCache mDiskLruCache = new DiskLruImageCache(oncreate, DISK_CACHE_SUBDIR,DISK_CACHE_SIZE);
+
+		Log.d("SHULIN", "starting cache thing");
 	    
 	    Session.openActiveSession(this, true, new Session.StatusCallback() {
 	    
 	      @Override
 	      public void call(Session session, SessionState state, Exception exception) {
+	    	  Log.d("SHULIN", "call function");
 	        if (session.isOpened()) {
-	        
+	        	Log.d("SHULIN", "session is open");
 	        	Request.executeMyFriendsRequestAsync(session, new Request.GraphUserListCallback() {
+	        		
 					@Override
 					public void onCompleted(List<GraphUser> users, Response response) {
-						
-						if(users != null && !users.isEmpty()) {
-							LinkedList<String> friendlist = new LinkedList<String>();
-							int limit = 5; // test
+						Log.d("SHULIN", "starting to look for friends1");
+						if(users != null) {
 							ImageView imageView = new ImageView(oncreate);
-							
+							Log.d("SHULIN", "starting to look for friends2");
 							for(GraphUser user : users) {
+								Log.d("SHULIN", "in loop");
 								String profile_img = "https://graph.facebook.com/" + user.getId() + "/picture?type=large";
 								String profile_url = 
-										"https://graph.facebook.com/" + user.getId() + "795270135?fields=id,name,education,relationship_status,significant_other,work";
+										"https://graph.facebook.com/" + user.getId() + "?fields=id,name,education,relationship_status,significant_other,work";
 								Bitmap mIcon11 = null;
 								JSONObject profile_json = null;
 								
@@ -92,9 +82,8 @@ public class EdenMain extends Activity {
 								Bitmap viewBitmap = Bitmap.createBitmap(image.getWidth(),image.getHeight(),Bitmap.Config.ARGB_8888);
 								
 								ProfileInfo profile_info = new ProfileInfo(viewBitmap, profile_json);
-								
-								oncreate.addBitmapToMemoryCache(user.getId(), profile_info);
-								break;
+								mDiskLruCache.put(user.getId(), profile_info);
+								Log.d("SHULIN", "added user " + user.getId());
 							}
 						}
 					}
@@ -156,20 +145,5 @@ public class EdenMain extends Activity {
 	    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
 	    return s.hasNext() ? s.next() : "";
 	}
-	
-	//bitmap memory cache handling
-    public void addBitmapToMemoryCache(String key, ProfileInfo profile) {
-        if (getBitmapFromMemCache(key) == null) {
-            mMemoryCache.put(key, profile);
-        }
-    }
-
-    public ProfileInfo getBitmapFromMemCache(String key) {
-        return mMemoryCache.get(key);
-    }
-	
-    public ProfileInfo removeBitmapFromMemCache(String key) {
-        return mMemoryCache.remove(key);
-    }
 	
 }
