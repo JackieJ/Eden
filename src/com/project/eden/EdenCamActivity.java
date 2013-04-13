@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Queue;
 
 //Java OpenCV Wrapper Library
@@ -66,12 +67,12 @@ public class EdenCamActivity extends Activity {
     private FaceCapture faceCapture;
     
     //queue for the bitmap memory-cached keys
-    public Queue<String> cachedKeyQueue;
+    public Queue<String> cachedKeyQueue = new PriorityQueue<String>();
     public int MAXCACHENUM = 5;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //caching setup 
-        final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
+    	final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
         final int cacheSize = maxMemory / 8;
         mMemoryCache = new LruCache<String, Bitmap>(cacheSize) {
             @Override
@@ -223,11 +224,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
         paint.setColor(Color.BLUE);
         paint.setTextSize(40);
         
-        if (eContext.getBitmapFromMemCache(String.valueOf(0)) != null && faces != null) {
-        	//align the icons from images cached in memory
-        	
-        }
-        String s = "Project Eden Baby";
+        String s = "Eden";
         float textWidth = paint.measureText(s);
         canvas.drawText(s, (getWidth()-textWidth)/2, 40, paint);
         
@@ -319,15 +316,19 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
                 /* Image Comparison TODO */
                 /*************************/
                 
+                
+                
                 int qSize = mainContext.cachedKeyQueue.size();
                 
                 if (qSize != mainContext.MAXCACHENUM) {
                 	//add the preview frame to cache
+                	Log.d("CACHE NOT FULL","CACHE NOT FULL!");
                 	mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
                 	mainContext.cachedKeyQueue.add(String.valueOf(keyCounter));
                 } else {
                 	//shift the list from top to bottom
                 	//remove the early preview and add the lastest one
+                	Log.d("CACHE FULL","REMOVING ELEMENTS!");
                 	String removeKey = mainContext.cachedKeyQueue.poll();
                 	mainContext.removeBitmapFromMemCache(removeKey);
                 	
