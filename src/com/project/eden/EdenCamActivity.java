@@ -2,11 +2,14 @@ package com.project.eden;
  
 
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
@@ -69,6 +72,105 @@ public class EdenCamActivity extends Activity {
     private FaceRecognition faceReco;
     //action class after face is captured.
     private FaceCapture faceCapture;
+    
+    public boolean isStarted = false;
+    
+    //UI
+    int counter_display = 0;
+    AlertDialog alert_dialog;
+    public static int screensize_x = 1280;
+    public static int screensize_y = 768;
+    public static int buffer_zone_value = 20;
+    public static int offset_x = 20;
+    public static int offset_y = 20;
+    public static ArrayList<String> info_list = new ArrayList<String>();
+    public void addItem() {
+    	info_list.add("School");
+    	info_list.add("Relationship");
+    	info_list.add("Interests");
+    }
+	public int boxX1 = -1, boxY1 = -1, boxX2 = -1, boxY2 = -1;
+    
+    public void displayDialog(int center_x, int center_y, int x, int y) {
+        if (counter_display==0) {
+            addItem();
+            counter_display = 1;
+        }
+        // Use the Builder class for convenient dialog construction
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Name")
+
+            .setItems(info_list.toArray(new CharSequence[info_list.size()]), new DialogInterface.OnClickListener() {
+                    //.setItems(R.array.info_array, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+      			   
+                    }
+                })
+            .setPositiveButton("View On Facebook", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        String url = "http://www.facebook.com";
+                        viewOnFacebook (url);
+                    }
+                })
+            .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        //dialog.cancel();
+                    }
+                });
+        alert_dialog = builder.create();
+        int[] i_coord = new int[2];
+        i_coord = dynamicPosition (center_x, center_y, alert_dialog);
+        alert_dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);     
+        WindowManager.LayoutParams params = alert_dialog.getWindow().getAttributes();
+        int i_x, i_y;
+        i_x = i_coord[0];
+        i_y = i_coord[1];
+        params.x = center_x + i_x*offset_x; //x coordinate of the rect
+        params.y = center_y + i_y*offset_y;
+
+        alert_dialog.getWindow().setAttributes(params);
+        alert_dialog.show();
+        // Create the AlertDialog object and return it
+    }
+
+    public int[] dynamicPosition (int x, int y, AlertDialog alert_dialog) {
+        int i_x;
+        int i_y;
+        int[] i_coord = new int[2];
+        if ((screensize_x-buffer_zone_value) <= x && x <= (screensize_y+buffer_zone_value)) {
+            if (y >= screensize_y/2) {
+                i_x = 0;
+                i_y = 1;
+            }
+            else {
+                i_x = 0;
+                i_y = -1;
+            }
+        } else if (x <= screensize_x/2 && y <= screensize_y/2) {
+            i_x = 1;
+            i_y = 1;
+        } else if (x >= screensize_x/2 && y <= screensize_y/2) {
+            i_x = -1;
+            i_y = 1;
+        } else if (x <= screensize_x/2 && y >= screensize_y/2) {
+            i_x = 1;
+            i_y = -1;
+        } else {
+            i_x = -1;
+            i_y = -1;
+        }
+        i_coord[0] = i_x;
+        i_coord[1] = i_y;
+        return i_coord;
+
+    }
+
+    public void viewOnFacebook (String url) {
+        Uri uriUrl = Uri.parse(url);
+        Intent launchBrowser = new Intent(Intent.ACTION_VIEW, uriUrl);
+        startActivity(launchBrowser);
+    }
+    
     
     //Face tracker
     public int faceTracker = 0;
@@ -225,7 +327,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
     }
     
     @SuppressLint("DrawAllocation")
-	@Override
+    @Override
     protected void onDraw(Canvas canvas) {
         Paint paint = new Paint();
         paint.setColor(Color.BLUE);
@@ -251,7 +353,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
             //create a queue iterator
             //iterate through eContext.cachedKeyQueue
         	
-        	Iterator<String> it = eContext.cachedKeyQueue.iterator();
+            Iterator<String> it = eContext.cachedKeyQueue.iterator();
             while (it.hasNext())
                 {
                     paint.setARGB(120,216,216,216);
@@ -264,7 +366,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
                     mainTopY += mainHeight + mainPad;
                     mainBotY += mainHeight + mainPad;
                 }
-      
+            
             //canvas.drawBitmap(bitmap, src, dst, paint)
         }
 
@@ -314,7 +416,12 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
                             //canvas.drawBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.facebook_logo), topLeftX - boxWidth - padding, topLeftY, null);
                         }
                 }
-         
+                eContext.isStarted = true;
+                eContext.boxX1 = (int)(w*scaleX);
+                eContext.boxY1 = (int)(h*scaleY);
+                eContext.boxX2 = (int)x;
+                eContext.boxY2 = (int)y;
+                
             }
         }
     }
@@ -343,12 +450,20 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
         float x = e.getX();
         float y = e.getY();
         
+        
         //retrieve desired position
         
         int action1 = e.getAction();
         //take picture when the pressure releases
         if (action1 == MotionEvent.ACTION_UP && mainContext.faceTracker != 0) {
-            mCamera.takePicture(null, null, pictureCallback);
+        	if (mainContext.boxX1 != -1 &&
+            		mainContext.boxX2 != -1 &&
+            		mainContext.boxY1 != -1 &&
+            		mainContext.boxY2 != -1) {
+            	mainContext.displayDialog(mainContext.boxX1, mainContext.boxY1, mainContext.boxX2, mainContext.boxY2);
+            }
+            
+        	mCamera.takePicture(null, null, pictureCallback);
         }
     	
         return true;
@@ -391,10 +506,10 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
                     mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
                     mainContext.cachedKeyQueue.addLast(String.valueOf(keyCounter));
                 }
-              //DEBUG
+                //DEBUG
                 Iterator<String>  it = mainContext.cachedKeyQueue.iterator();
                 while  (it.hasNext()) {
-                	Log.d("image",String.valueOf(it.next()));
+                    Log.d("image",String.valueOf(it.next()));
                 }
                 Log.d("SizeQQ", String.valueOf(mainContext.cachedKeyQueue.size()));
                 
