@@ -4,8 +4,8 @@
 	<classpathentry kind="src" path="gen"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
-	<classpathentry exported="true" kind="lib" path="/Users/jackie/Development/Android/vuforia-sdk-android-2-0-31/build/java/QCAR/QCAR.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/javacpp.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/javacv.jar"/>
+	<classpathentry exported="true" kind="lib" path="/Users/crazyomg23/Documents/Development/Android/vuforia-sdk-android-2-0-31/build/java/QCAR/QCAR.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>

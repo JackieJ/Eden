@@ -1,9 +1,12 @@
 package com.project.eden;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
@@ -48,6 +51,20 @@ public class EdenCamActivity extends Activity {
     //action class after face is captured.
 	private FaceCapture faceCapture;
 		
+	int counter_display = 0;
+    AlertDialog alert_dialog;
+    public static int screensize_x = 1280;
+	public static int screensize_y = 768;
+	public static int buffer_zone_value = 20;
+	public static int offset_x = 20;
+	public static int offset_y = 20;
+	public static ArrayList<String> info_list = new ArrayList<String>();
+	public void addItem() {
+	info_list.add("School");
+	info_list.add("Relationship");
+	info_list.add("Interests");
+	}
+	
 	@Override
     protected void onCreate(Bundle savedInstanceState) {
         // Hide the window title.
@@ -69,8 +86,109 @@ public class EdenCamActivity extends Activity {
             e.printStackTrace();
             new AlertDialog.Builder(this).setMessage(e.getMessage()).create().show();
         }
+        
+        
     }
 	
+	 public void displayDialog(int center_x, int center_y, int x, int y) {
+		 if (counter_display==0) {
+			 addItem();
+			 counter_display = 1;
+		 }
+      // Use the Builder class for convenient dialog construction
+		 //ContextThemeWrapper context_wrapper = new ContextThemeWrapper(this, R.style.Theme_Dialog);
+      AlertDialog.Builder builder = new AlertDialog.Builder(this);
+      builder.setTitle("Name")
+      //builder.setTitle(R.string.name)
+      // use setAdapter() ListAdapter
+      //List<String> list = Arrays.asList("foo", "bar", "waa");
+      //CharSequence[] cs = list.toArray(new CharSequence[list.size()]);
+      //System.out.println(Arrays.toString(cs));
+      	.setItems(info_list.toArray(new CharSequence[info_list.size()]), new DialogInterface.OnClickListener() {
+      	   //.setItems(R.array.info_array, new DialogInterface.OnClickListener() {
+      		   public void onClick(DialogInterface dialog, int id) {
+      			   
+      		   }
+      	   })
+             .setPositiveButton("View On Facebook", new DialogInterface.OnClickListener() {
+                 public void onClick(DialogInterface dialog, int id) {
+              	   String url = "";
+              	   viewOnFacebook (url);
+                 }
+             })
+             .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                 public void onClick(DialogInterface dialog, int id) {
+                     //dialog.cancel();
+                 }
+             });
+      alert_dialog = builder.create();
+      int[] i_coord = new int[2];
+      i_coord = dynamicPosition (center_x, center_y, alert_dialog);
+      alert_dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);     
+      WindowManager.LayoutParams params = alert_dialog.getWindow().getAttributes();
+		int i_x, i_y;
+		i_x = i_coord[0];
+		i_y = i_coord[1];
+		params.x = center_x + i_x*offset_x; //x coordinate of the rect
+		params.y = center_y + i_y*offset_y;
+		//alert_dialog.getWindow().setLayout(200,300);
+		//params.copyFrom(alert_dialog.getWindow().getAttributes());
+		//params.width = 150;
+		//params.height = 500;
+		//params.x= 0;
+		//params.y= 0 ;
+		alert_dialog.getWindow().setAttributes(params);
+		alert_dialog.show();
+      // Create the AlertDialog object and return it
+  }
+	
+	 public int[] dynamicPosition (int x, int y, AlertDialog alert_dialog) {
+			int i_x;
+			int i_y;
+			int[] i_coord = new int[2];
+			if ((screensize_x-buffer_zone_value) <= x && x <= (screensize_y+buffer_zone_value)) {
+				if (y >= screensize_y/2) {
+					i_x = 0;
+					i_y = 1;
+				}
+				else {
+					i_x = 0;
+					i_y = -1;
+				}
+			} else if (x <= screensize_x/2 && y <= screensize_y/2) {
+				i_x = 1;
+				i_y = 1;
+			} else if (x >= screensize_x/2 && y <= screensize_y/2) {
+				i_x = -1;
+				i_y = 1;
+			} else if (x <= screensize_x/2 && y >= screensize_y/2) {
+				i_x = 1;
+				i_y = -1;
+			} else {
+				i_x = -1;
+				i_y = -1;
+			}
+			i_coord[0] = i_x;
+			i_coord[1] = i_y;
+			return i_coord;
+			/*
+			 alertDialog.show();
+			WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+
+			lp.copyFrom(alertDialog.getWindow().getAttributes());
+			lp.width = 150;
+			lp.height = 500;
+			lp.x=-170;
+			lp.y=100;
+			alertDialog.getWindow().setAttributes(lp);
+			 */
+		}
+		
+		public void viewOnFacebook (String url) {
+			Uri uriUrl = Uri.parse(url);
+			Intent launchBrowser = new Intent(Intent.ACTION_VIEW, uriUrl);
+			startActivity(launchBrowser);
+		}
 }
 
 class FaceRecognition extends View implements Camera.PreviewCallback {
@@ -81,10 +199,11 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
     private CvHaarClassifierCascade classifier;
     private CvMemStorage storage;
     private CvSeq faces;
+    private EdenCamActivity cam_activity; 
     
     public FaceRecognition(EdenCamActivity context) throws IOException {
         super(context);
-
+        cam_activity = context;
         // Load the classifier file from Java resources.
         File classifierFile = Loader.extractResource(getClass(),
             "/com/project/eden/haarcascade_frontalface_alt.xml",
@@ -174,17 +293,20 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
         if (faces != null) {
             paint.setStrokeWidth(4);
             paint.setStyle(Paint.Style.STROKE);
-            float scaleX = (float)getWidth()/grayImage.width();
-            float scaleY = (float)getHeight()/grayImage.height();
+            int scaleX = (int)getWidth()/grayImage.width();
+            int scaleY = (int)getHeight()/grayImage.height();
             int total = faces.total();
             for (int i = 0; i < total; i++) {
                 CvRect r = new CvRect(cvGetSeqElem(faces, i));
                 int x = r.x(), y = r.y(), w = r.width(), h = r.height();
                 paint.setColor(Color.GREEN);
                 canvas.drawRect(x*scaleX, y*scaleY, (x+w)*scaleX, (y+h)*scaleY, paint);
+                cam_activity.displayDialog(w*scaleX, h*scaleY, x, y);
             }
         }
     }
+   
+	
 }
 
 class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
