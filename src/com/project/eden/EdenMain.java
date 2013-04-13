@@ -29,4 +29,5 @@ public class EdenMain extends Activity {
 		Intent intent = new Intent(this, EdenCamActivity.class);
 		startActivity(intent);
 	}
+	//
 }
