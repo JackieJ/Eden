@@ -43,29 +43,24 @@ public class EdenMain extends Activity {
 	    final EdenMain oncreate = this;	// used for contexts
 	    final DiskLruImageCache mDiskLruCache = new DiskLruImageCache(oncreate, DISK_CACHE_SUBDIR,DISK_CACHE_SIZE);
 
-		Log.d("SHULIN", "starting cache thing");
-	    
 	    Session.openActiveSession(this, true, new Session.StatusCallback() {
 	    
 	      @Override
 	      public void call(Session session, SessionState state, Exception exception) {
-	    	  Log.d("SHULIN", "call function");
 	        if (session.isOpened()) {
-	        	Log.d("SHULIN", "session is open");
+	        	
 	        	Request.executeMyFriendsRequestAsync(session, new Request.GraphUserListCallback() {
 	        		
 					@Override
 					public void onCompleted(List<GraphUser> users, Response response) {
-						Log.d("SHULIN", "starting to look for friends1");
-						if(users != null) {
-							ImageView imageView = new ImageView(oncreate);
-							Log.d("SHULIN", "starting to look for friends2");
-							for(GraphUser user : users) {
-								Log.d("SHULIN", "in loop");
+						Log.d("SHULIN", "on complete");
+						Log.i("INFO", "" + users.toString());
+						/*if(users != null && !users.isEmpty()) {
+							for (GraphUser user : users) {
+								
 								String profile_img = "https://graph.facebook.com/" + user.getId() + "/picture?type=large";
 								String profile_url = 
 										"https://graph.facebook.com/" + user.getId() + "?fields=id,name,education,relationship_status,significant_other,work";
-								Bitmap mIcon11 = null;
 								JSONObject profile_json = null;
 								
 					            try {
@@ -77,21 +72,23 @@ public class EdenMain extends Activity {
 					                e.printStackTrace();
 					            }
 					            
-								new DownloadImageTask(imageView).execute(profile_img);
-								ImageView image=new ImageView(oncreate);
-								Bitmap viewBitmap = Bitmap.createBitmap(image.getWidth(),image.getHeight(),Bitmap.Config.ARGB_8888);
+					            ImageView imageView = new ImageView(oncreate);
+					            new DownloadImageTask(imageView).execute(profile_img);
+								Bitmap viewBitmap = Bitmap.createBitmap(imageView.getWidth(),imageView.getHeight(),Bitmap.Config.ARGB_8888);
 								
 								ProfileInfo profile_info = new ProfileInfo(viewBitmap, profile_json);
 								mDiskLruCache.put(user.getId(), profile_info);
-								Log.d("SHULIN", "added user " + user.getId());
+								Log.d("SHULIN", "user cached");
 							}
-						}
+						}*/
 					}
 	          });
 	          
 	        }      
 	      }
 	    });
+	    
+	    Log.d("SHULIN", "session check done"); 
 	}
 	 
 	@Override
