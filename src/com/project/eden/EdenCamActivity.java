@@ -1,16 +1,21 @@
 package com.project.eden;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
+import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.Size;
@@ -27,7 +32,9 @@ import android.widget.FrameLayout;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -49,6 +56,7 @@ import android.graphics.Bitmap;
 
 
 
+
 @SuppressLint("NewApi")
 public class EdenCamActivity extends Activity {
 
@@ -61,13 +69,123 @@ public class EdenCamActivity extends Activity {
     //action class after face is captured.
     private FaceCapture faceCapture;
     
+    public boolean isStarted = false;
+    
+    //UI
+    int counter_display = 0;
+    AlertDialog alert_dialog;
+    public static int screensize_x = 1280;
+    public static int screensize_y = 768;
+    public static int buffer_zone_value = 20;
+    public static int offset_x = 20;
+    public static int offset_y = 20;
+    public static ArrayList<String> info_list = new ArrayList<String>();
+    public void addItem() {
+    	info_list.add("UCLA");
+    	info_list.add("Single");
+    	info_list.add("Aerobatic Gymnastics");
+    }
+	public int boxX1 = -1, boxY1 = -1, boxX2 = -1, boxY2 = -1;
+    
+    public void displayDialog(int center_x, int center_y, int x, int y) {
+        if (counter_display==0) {
+            addItem();
+            counter_display = 1;
+        }
+        // Use the Builder class for convenient dialog construction
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Jackie Jin")
+
+            .setItems(info_list.toArray(new CharSequence[info_list.size()]), new DialogInterface.OnClickListener() {
+                    //.setItems(R.array.info_array, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+      			   
+                    }
+                })
+            .setPositiveButton("View On Facebook", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        String url = "http://www.facebook.com/jackie.jin2";
+                        viewOnFacebook (url);
+                    }
+                })
+            .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        //dialog.cancel();
+                    }
+                });
+        alert_dialog = builder.create();
+        int[] i_coord = new int[2];
+        i_coord = dynamicPosition (center_x, center_y, alert_dialog);
+        alert_dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);     
+        WindowManager.LayoutParams params = alert_dialog.getWindow().getAttributes();
+        int i_x, i_y;
+        i_x = i_coord[0];
+        i_y = i_coord[1];
+        params.x = center_x + i_x*offset_x; //x coordinate of the rect
+        params.y = center_y + i_y*offset_y;
+
+        alert_dialog.getWindow().setAttributes(params);
+        alert_dialog.show();
+        // Create the AlertDialog object and return it
+    }
+
+    public int[] dynamicPosition (int x, int y, AlertDialog alert_dialog) {
+        int i_x;
+        int i_y;
+        int[] i_coord = new int[2];
+        if ((screensize_x-buffer_zone_value) <= x && x <= (screensize_y+buffer_zone_value)) {
+            if (y >= screensize_y/2) {
+                i_x = 0;
+                i_y = 1;
+            }
+            else {
+                i_x = 0;
+                i_y = -1;
+            }
+        } else if (x <= screensize_x/2 && y <= screensize_y/2) {
+            i_x = 1;
+            i_y = 1;
+        } else if (x >= screensize_x/2 && y <= screensize_y/2) {
+            i_x = -1;
+            i_y = 1;
+        } else if (x <= screensize_x/2 && y >= screensize_y/2) {
+            i_x = 1;
+            i_y = -1;
+        } else {
+            i_x = -1;
+            i_y = -1;
+        }
+        i_coord[0] = i_x;
+        i_coord[1] = i_y;
+        return i_coord;
+
+    }
+
+    public void viewOnFacebook (String url) {
+        Uri uriUrl = Uri.parse(url);
+        Intent launchBrowser = new Intent(Intent.ACTION_VIEW, uriUrl);
+        startActivity(launchBrowser);
+    }
+    private OnClickListener mCorkyListener = new OnClickListener() {
+        public void onClick(View v) {
+          // do something when the button is clicked
+        }
+
+		@Override
+		public void onClick(DialogInterface dialog, int which) {
+			// TODO Auto-generated method stub
+			
+		}
+    };
+    
+    //Face tracker
+    public int faceTracker = 0;
+    
     //queue for the bitmap memory-cached keys
-    public Queue<String> cachedKeyQueue = new PriorityQueue<String>();
+    public ArrayDeque<String> cachedKeyQueue = new ArrayDeque<String>();
     public int MAXCACHENUM = 5;
-    private Button closeButton;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-    
         //caching setup 
     	final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
         final int cacheSize = maxMemory / 8;
@@ -78,7 +196,6 @@ public class EdenCamActivity extends Activity {
                 // number of items.
                 return bitmap.getByteCount() / 1024;
             }
-            
         };
 
         // Hide the window title.
@@ -100,6 +217,8 @@ public class EdenCamActivity extends Activity {
             e.printStackTrace();
             new AlertDialog.Builder(this).setMessage(e.getMessage()).create().show();
         }
+        
+        
     }
 
     //bitmap memory cache handling
@@ -187,6 +306,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
 
         cvClearMemStorage(storage);
         faces = cvHaarDetectObjects(grayImage, classifier, storage, 1.1, 3, CV_HAAR_DO_CANNY_PRUNING);
+        eContext.faceTracker = faces.total();
         postInvalidate();
     }
 
@@ -213,7 +333,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
     	}
     	return fcoords;
     }
-    
+    @SuppressLint("DrawAllocation")
     @Override
     protected void onDraw(Canvas canvas) {
         Paint paint = new Paint();
@@ -222,7 +342,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
         paint.setAntiAlias(true);
 
 
-        String s = "Project Eden Baby:D";
+        String s = "Project Eden Baby";
         float textWidth = paint.measureText(s);
         canvas.drawText(s, (getWidth()-textWidth)/2, 40, paint);
         int mainPad = 30;
@@ -236,31 +356,32 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
         paint.setStrokeWidth(3);
         paint.setStyle(Paint.Style.STROKE);
         if (eContext.cachedKeyQueue.size() != 0 && faces != null) {
-        	//align the icons from images cached in memory
+            //align the icons from images cached in memory
             //create a queue iterator
             //iterate through eContext.cachedKeyQueue
         	
-        	for(int i = 0; i < eContext.cachedKeyQueue.size(); i++)
-        	{
-        		paint.setARGB(120,216,216,216);
-            	canvas.drawRect(mainTopX-mainPad2, mainTopY-mainPad2, mainBotX+mainPad2, mainBotY+mainPad2, paint);
-            	
-        		Bitmap img = eContext.getBitmapFromMemCache(String.valueOf(i));
-        		Rect box = new Rect(mainTopX, mainTopY, mainBotX, mainBotY);
-        		canvas.drawBitmap(img, null, box, null);
-        		
-            	mainTopY += mainHeight + mainPad;
-            	mainBotY += mainHeight + mainPad;
-        	}
-        	
-            		//canvas.drawBitmap(bitmap, src, dst, paint)
+            Iterator<String> it = eContext.cachedKeyQueue.iterator();
+            while (it.hasNext())
+                {
+                    paint.setARGB(120,216,216,216);
+                    canvas.drawRect(mainTopX-mainPad2, mainTopY-mainPad2, mainBotX+mainPad2, mainBotY+mainPad2, paint);
+            
+                    Bitmap img = eContext.getBitmapFromMemCache(it.next());
+                    Rect box = new Rect(mainTopX, mainTopY, mainBotX, mainBotY);
+                    canvas.drawBitmap(img, null, box, null);
+        
+                    mainTopY += mainHeight + mainPad;
+                    mainBotY += mainHeight + mainPad;
+                }
+            
+            //canvas.drawBitmap(bitmap, src, dst, paint)
         }
 
 
         
         if (faces != null) {
-        	float padding = 20;
-        	
+            float padding = 20;
+        
             paint.setStrokeWidth(4);
             paint.setStyle(Paint.Style.STROKE);
             float scaleX = (float)getWidth()/grayImage.width();
@@ -286,23 +407,51 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
                 canvas.drawRect(topLeftX, topLeftY, botRightX, botRightY, paint);
                 // Draw on left or right of face
                 //paint.setColor(Color.BLUE);
+                paint.setARGB(180,236,236,236);
+
+                paint.setTextSize(45);
+                paint.setStrokeWidth(2);
+                Typeface face = null;
+                face.defaultFromStyle(3); 
+
+                String faceName = "Jackie Jin";
+                String faceSchool = "UCLA";
+                String faceStatus = "Single";
+                String faceInterests = "Aerobatic Gymnastics";
+                paint.setTypeface(face);
                 if ((topLeftX + boxWidth + faceWidth + padding) < (float)getWidth()) {
-                	for (int j = 0; j < 30; j++)
-                	{
-                	//canvas.drawRect(topLeftX + faceWidth + padding, topLeftY, 
-                					//topLeftX + boxWidth + faceWidth + padding, topLeftY + boxHeight, paint);
-                    canvas.drawBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.facebook_logo), topLeftX + faceWidth + padding, topLeftY, null);
-                	}
+                    for (int j = 0; j < 30; j++)
+                        {
+                            //canvas.drawRect(topLeftX + faceWidth + padding, topLeftY, 
+                            //topLeftX + boxWidth + faceWidth + padding, topLeftY + boxHeight, paint);
+                            //canvas.drawBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.facebook_logo), topLeftX + faceWidth + padding, topLeftY, null);
+                        	canvas.drawText(faceName, topLeftX + faceWidth + padding, topLeftY, paint);
+                        	canvas.drawText(faceSchool, topLeftX + faceWidth + padding, topLeftY+padding*3, paint);
+                        	canvas.drawText(faceStatus, topLeftX + faceWidth + padding, topLeftY+padding*6, paint);
+                        	canvas.drawText(faceInterests, topLeftX + faceWidth + padding, topLeftY+padding*9, paint);
+
+                        }
                 }
                 else {
-                	for (int j = 0; j < 30; j++)
-                	{
-                	//canvas.drawRect(topLeftX - boxWidth - padding, topLeftY, 
-                					//botRightX - faceWidth - padding, topLeftY + boxHeight, paint);
-                    canvas.drawBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.facebook_logo), topLeftX - boxWidth - padding, topLeftY, null);
-                	}
+                    for (int j = 0; j < 30; j++)
+                        {
+                            //canvas.drawRect(topLeftX - boxWidth - padding, topLeftY, 
+                            //botRightX - faceWidth - padding, topLeftY + boxHeight, paint);
+                           //canvas.drawBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.facebook_logo), topLeftX - boxWidth - padding, topLeftY, null);
+                       		//canvas.drawText("Jackie Jin", topLeftX + faceWidth + padding,topLeftY, paint);
+                    	canvas.drawText(faceName, topLeftX + faceWidth + padding, topLeftY, paint);
+                    	canvas.drawText(faceSchool, topLeftX + faceWidth + padding, topLeftY+padding*3, paint);
+                    	canvas.drawText(faceStatus, topLeftX + faceWidth + padding, topLeftY+padding*6, paint);
+                    	canvas.drawText(faceInterests, topLeftX + faceWidth + padding, topLeftY+padding*9, paint);
+
+                        }
                 }
-         
+                eContext.isStarted = true;
+                eContext.boxX1 = (int)(w*scaleX);
+                eContext.boxY1 = (int)(h*scaleY);
+                eContext.boxX2 = (int)x;
+                eContext.boxY2 = (int)y;
+                
             }
         }
     }
@@ -330,12 +479,20 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
         float x = e.getX();
         float y = e.getY();
         
+        
         //retrieve desired position
         
         int action1 = e.getAction();
         //take picture when the pressure releases
-        if (action1 == MotionEvent.ACTION_UP) {
-            mCamera.takePicture(null, null, pictureCallback);
+        if (action1 == MotionEvent.ACTION_UP && mainContext.faceTracker != 0) {
+        	if (mainContext.boxX1 != -1 &&
+            		mainContext.boxX2 != -1 &&
+            		mainContext.boxY1 != -1 &&
+            		mainContext.boxY2 != -1) {
+            	mainContext.displayDialog(mainContext.boxX1, mainContext.boxY1, mainContext.boxX2, mainContext.boxY2);
+            }
+            
+        	mCamera.takePicture(null, null, pictureCallback);
         }
     	
         return true;
@@ -360,22 +517,31 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
                 
                 int qSize = mainContext.cachedKeyQueue.size();
                 
-                if (qSize != mainContext.MAXCACHENUM) {
-                	//add the preview frame to cache
-                	Log.d("CACHE NOT FULL","CACHE NOT FULL!");
-                	mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
-                	mainContext.cachedKeyQueue.add(String.valueOf(keyCounter));
+                
+                
+                if (qSize < mainContext.MAXCACHENUM) {
+                    //add the preview frame to cache
+                    Log.d("CACHE NOT FULL","CACHE NOT FULL!");
+                    mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
+                    mainContext.cachedKeyQueue.addLast(String.valueOf(keyCounter));
                 } else {
-                	//shift the list from top to bottom
-                	//remove the early preview and add the lastest one
-                	Log.d("CACHE FULL","REMOVING ELEMENTS!");
-                	String removeKey = mainContext.cachedKeyQueue.poll();
-                	mainContext.removeBitmapFromMemCache(removeKey);
+                    //shift the list from top to bottom
+                    //remove the early preview and add the lastest one
+                    Log.d("CACHE FULL",String.valueOf(keyCounter));
+                    String removeKey = mainContext.cachedKeyQueue.pollFirst();
+                    mainContext.removeBitmapFromMemCache(removeKey);
                 	
-                	//add new key pair at the end
-                	mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
-                	mainContext.cachedKeyQueue.add(String.valueOf(keyCounter));
+                    //add new key pair at the end
+                    mainContext.addBitmapToMemoryCache(String.valueOf(keyCounter), loadImage);
+                    mainContext.cachedKeyQueue.addLast(String.valueOf(keyCounter));
                 }
+                //DEBUG
+                Iterator<String>  it = mainContext.cachedKeyQueue.iterator();
+                while  (it.hasNext()) {
+                    Log.d("image",String.valueOf(it.next()));
+                }
+                Log.d("SizeQQ", String.valueOf(mainContext.cachedKeyQueue.size()));
+                
                 keyCounter++;
             }
         };

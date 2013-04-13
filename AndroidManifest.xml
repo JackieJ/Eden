@@ -3,12 +3,13 @@
     package="com.project.eden"
     android:versionCode="1"
     android:versionName="1.0" >
-    
+
     <uses-sdk
         android:minSdkVersion="1"
         android:targetSdkVersion="17" />
 
- 	<uses-feature android:name="android.hardware.camera" />
+    <uses-feature android:name="android.hardware.camera" />
+
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- allows for GPS location access -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -17,7 +18,7 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -25,7 +26,9 @@
         android:theme="@style/AppTheme" >
         <activity
             android:name="com.project.eden.EdenMain"
-            android:label="@string/app_name" >
+            android:label="@string/app_name" 
+            android:screenOrientation="landscape">
+            
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -36,11 +39,16 @@
             android:name="com.project.eden.EdenCamActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize"
             android:label="@string/title_activity_eden_cam"
-            android:parentActivityName="com.project.eden.EdenMain" >
+            android:parentActivityName="com.project.eden.EdenMain" 
+            android:screenOrientation="landscape" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.project.eden.EdenMain" />
         </activity>
+        <activity
+            android:name="com.project.eden.ProfileInfo"
+            android:label="@string/title_activity_profile_info" >
+        </activity>        
     </application>
 
 </manifest>

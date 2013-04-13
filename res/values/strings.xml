@@ -7,5 +7,6 @@
     <string name="main_title">Eden</string>
     <string name="title_activity_eden_cam">EdenCamActivity</string>
     <string name="hello_world">Hello world!</string>
+    <string name="title_activity_profile_info">ProfileInfo</string>
 
 </resources>
