@@ -8,5 +8,20 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".EdenCamActivity" >
 
+    
+    <TextView
+        android:id="@+id/textView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+         />
+
+    <Button
+        android:id="@+id/button1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/textView1"
+        android:layout_marginLeft="63dp"
+        android:layout_toRightOf="@+id/textView1"
+        android:text="help" />
 
 </RelativeLayout>
