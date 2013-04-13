@@ -12,6 +12,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -48,6 +50,7 @@ import java.util.Queue;
 
 //Java OpenCV Wrapper Library
 import com.googlecode.javacpp.Loader;
+import com.googlecode.javacv.cpp.opencv_features2d;
 import com.googlecode.javacv.cpp.opencv_objdetect;
 import com.googlecode.javacv.cpp.opencv_core.CvMemStorage;
 import com.googlecode.javacv.cpp.opencv_core.CvRect;
@@ -55,11 +58,11 @@ import com.googlecode.javacv.cpp.opencv_core.CvSeq;
 import com.googlecode.javacv.cpp.opencv_core.IplImage;
 import com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
 
+import com.googlecode.javacv.ObjectFinder;
 import static com.googlecode.javacv.cpp.opencv_core.*;
 import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 import static com.googlecode.javacv.cpp.opencv_objdetect.*;
 import static com.googlecode.javacv.cpp.opencv_highgui.*;
-
 
 @SuppressLint("NewApi")
 public class EdenCamActivity extends Activity {
@@ -263,6 +266,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
             throw new IOException("Could not load the classifier file.");
         }
         storage = CvMemStorage.create();
+       
     }
 
     public void onPreviewFrame(final byte[] data, final Camera camera) {
@@ -335,9 +339,9 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
         paint.setAntiAlias(true);
 
 
-        String s = "Project Eden Baby";
-        float textWidth = paint.measureText(s);
-        canvas.drawText(s, (getWidth()-textWidth)/2, 40, paint);
+        //String s = "Project Eden Baby";
+        //float textWidth = paint.measureText(s);
+        //canvas.drawText(s, (getWidth()-textWidth)/2, 40, paint);
         int mainPad = 30;
         int mainPad2 = 10;
         int mainHeight = 96;
@@ -432,6 +436,10 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
     Camera mCamera;
     Camera.PreviewCallback previewCallback;
     EdenCamActivity mainContext;
+    IplImage iconImaage;
+    IplImage targetImage;
+    IplImage grayImageSrc;
+    
     private int keyCounter = 0;
     FaceCapture(Context context, Camera.PreviewCallback previewCallback) {
         super(context);
@@ -481,10 +489,45 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
                 //decode raw bytes to bitmap format
                 Bitmap loadImage = BitmapFactory.decodeByteArray(data, 0, data.length);
                 /*************************/
-                /* Image Comparison TODO */
+                /* Image Comparison      */
                 /*************************/
+                //conver Bitmap to grayImage
                 
+                /*
+                int f = 4;
+                Camera.Size size = camera.getParameters().getPreviewSize();
+                if (grayImageSrc == null || grayImageSrc.width() != size.width/f || grayImageSrc.height() != size.height/f) {
+                	grayImageSrc = IplImage.create(size.width/f, size.height/f, IPL_DEPTH_8U, 1);
+                }
+                int imageWidth  = grayImageSrc.width();
+                int imageHeight = grayImageSrc.height();
+                int dataStride = f*(size.width);
+                int imageStride = grayImageSrc.widthStep();
                 
+                ByteBuffer imageBuffer = grayImageSrc.getByteBuffer();
+                
+                for (int y = 0; y < imageHeight; y++) {
+                    int dataLine = y*dataStride;
+                    int imageLine = y*imageStride;
+                    for (int x = 0; x < imageWidth; x++) {
+                        //imageBuffer.put(imageLine + x, data[dataLine + f*x]);
+                    }
+                }*/
+                
+                int w1,h1;
+                w1 = loadImage.getWidth();
+                h1 = loadImage.getHeight();
+                grayImageSrc = IplImage.create(w1, h1, IPL_DEPTH_8U, 4);
+                IplImage grayImageSrc_1 = IplImage.create(w1, h1, IPL_DEPTH_8U, 1);
+                loadImage.copyPixelsToBuffer(grayImageSrc.getByteBuffer());
+                cvCvtColor(grayImageSrc, grayImageSrc_1, CV_BGR2GRAY);
+                
+                Loader.load(opencv_features2d.class);
+                ObjectFinder objectFinder = new ObjectFinder(grayImageSrc_1);
+                
+                double[] ROIPOINTS = objectFinder.find(grayImageSrc_1);
+                
+                Log.d("Region of Interests", String.valueOf(ROIPOINTS.length));
                 
                 int qSize = mainContext.cachedKeyQueue.size();
                 
