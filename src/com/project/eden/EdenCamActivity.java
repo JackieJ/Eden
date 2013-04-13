@@ -11,10 +11,12 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.Size;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -22,6 +24,8 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.TextView;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -95,6 +99,8 @@ public class EdenCamActivity extends Activity {
 			 addItem();
 			 counter_display = 1;
 		 }
+		 LayoutInflater li = LayoutInflater.from(this);
+       View view = li.inflate(R.layout.activity_eden_cam, null);
       // Use the Builder class for convenient dialog construction
 		 //ContextThemeWrapper context_wrapper = new ContextThemeWrapper(this, R.style.Theme_Dialog);
       AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -121,6 +127,7 @@ public class EdenCamActivity extends Activity {
                      //dialog.cancel();
                  }
              });
+      builder.setView(view);
       alert_dialog = builder.create();
       int[] i_coord = new int[2];
       i_coord = dynamicPosition (center_x, center_y, alert_dialog);
@@ -138,7 +145,10 @@ public class EdenCamActivity extends Activity {
 		//params.x= 0;
 		//params.y= 0 ;
 		alert_dialog.getWindow().setAttributes(params);
+		//((TextView)alert_dialog.findViewById(R.id.dialog_box_title_text)).setTypeface(Typeface.createFromAsset(getAssets(), "font.ttf"));
 		alert_dialog.show();
+		//TextView text=(TextView) findViewById(R.id.text);
+		//text.setTextSize(2);
       // Create the AlertDialog object and return it
   }
 	
