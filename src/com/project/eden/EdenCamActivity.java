@@ -67,7 +67,8 @@ import static com.googlecode.javacv.cpp.opencv_highgui.*;
 
 @SuppressLint("NewApi")
 public class EdenCamActivity extends Activity {
-	
+	private static final String DISK_CACHE_SUBDIR = "peoplepictures";
+	public File diskCache = DiskLruImageCache.getDiskCacheDir(this, DISK_CACHE_SUBDIR);
     //memory cache for bitmap
     private LruCache<String, Bitmap> mMemoryCache;
 	
@@ -611,6 +612,9 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
                 cvCvtColor(grayImageSrc, grayImageSrc_1, CV_BGR2GRAY);
                 
                 Loader.load(opencv_features2d.class);
+                
+                //iterate through images
+                
                 ObjectFinder objectFinder = new ObjectFinder(grayImageSrc_1);
                 
                 

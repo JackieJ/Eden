@@ -7,5 +7,6 @@
 	<classpathentry exported="true" kind="lib" path="/Users/jackie/Development/Android/vuforia-sdk-android-2-0-31/build/java/QCAR/QCAR.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/javacpp.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/javacv.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/disklrucache-1.3.1.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>
