@@ -6,6 +6,5 @@
     <string name="button_enter">Enter</string>
     <string name="main_title">Eden</string>
     <string name="title_activity_eden_cam">EdenCamActivity</string>
-    <string name="hello_world">Hello world!</string>
-
+    <string name="app_id">268886939914856</string>
 </resources>

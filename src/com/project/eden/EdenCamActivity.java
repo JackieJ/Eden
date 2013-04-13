@@ -1,4 +1,6 @@
 package com.project.eden;
+ 
+
 
 import android.os.Bundle;
 import android.app.Activity;
@@ -11,6 +13,7 @@ import android.graphics.Paint;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.Size;
+import android.support.v4.util.LruCache;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -19,11 +22,20 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+
+//face detection using android face detector
+import android.media.FaceDetector;
+import android.media.FaceDetector.Face;
+
+//Java IO buffer utils
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 
 //Java OpenCV Wrapper Library
 import com.googlecode.javacpp.Loader;
@@ -42,14 +54,29 @@ import static com.googlecode.javacv.cpp.opencv_highgui.*;
 
 public class EdenCamActivity extends Activity {
 	
-	private FrameLayout layout;
-	//face recognition following regular OpenCV process
-	private FaceRecognition faceView;
+    //memory cache for bitmap
+    private LruCache<String, Bitmap> mMemoryCache;
+	
+    private FrameLayout layout;
+    //face recognition following regular OpenCV process
+    private FaceRecognition faceReco;
     //action class after face is captured.
-	private FaceCapture faceCapture;
-		
-	@Override
+    private FaceCapture faceCapture;
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
+        //caching setup 
+        final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
+        final int cacheSize = maxMemory / 8;
+        mMemoryCache = new LruCache<String, Bitmap>(cacheSize) {
+            @Override
+            protected int sizeOf(String key, Bitmap bitmap) {
+                // The cache size will be measured in kilobytes rather than
+                // number of items.
+                return bitmap.getByteCount() / 1024;
+            }
+        };
+		
         // Hide the window title.
         requestWindowFeature(Window.FEATURE_NO_TITLE);
 
@@ -60,10 +87,10 @@ public class EdenCamActivity extends Activity {
         // Create our Preview view and set it as the content of our activity.
         try {
             layout = new FrameLayout(this);
-            faceView = new FaceRecognition(this);
-            faceCapture = new FaceCapture(this, faceView);
+            faceReco = new FaceRecognition(this);
+            faceCapture = new FaceCapture(this, faceReco);
             layout.addView(faceCapture);
-            layout.addView(faceView);
+            layout.addView(faceReco);
             setContentView(layout);
         } catch (IOException e) {
             e.printStackTrace();
@@ -71,24 +98,43 @@ public class EdenCamActivity extends Activity {
         }
     }
 	
+    //bitmap memory cache handling
+    public void addBitmapToMemoryCache(String key, Bitmap bitmap) {
+        if (getBitmapFromMemCache(key) == null) {
+            mMemoryCache.put(key, bitmap);
+	        
+        }
+    }
+
+    public Bitmap getBitmapFromMemCache(String key) {
+        return mMemoryCache.get(key);
+    }
+	
+    public Bitmap removeBitmapFromMemCache(String key) {
+        return mMemoryCache.remove(key);
+    }
+	
 }
 
 class FaceRecognition extends View implements Camera.PreviewCallback {
 	
-	public static final int SUBSAMPLING_FACTOR = 4;
+    public static final int SUBSAMPLING_FACTOR = 4;
 
+    //OpenCV face detection
     private IplImage grayImage;
     private CvHaarClassifierCascade classifier;
     private CvMemStorage storage;
     private CvSeq faces;
     
+    EdenCamActivity eContext;
+    
     public FaceRecognition(EdenCamActivity context) throws IOException {
         super(context);
-
+        eContext = context;
         // Load the classifier file from Java resources.
         File classifierFile = Loader.extractResource(getClass(),
-            "/com/project/eden/haarcascade_frontalface_alt.xml",
-            context.getCacheDir(), "classifier", ".xml");
+                                                     "/com/project/eden/haarcascade_frontalface_alt.xml",
+                                                     context.getCacheDir(), "classifier", ".xml");
         if (classifierFile == null || classifierFile.length() <= 0) {
             throw new IOException("Could not extract the classifier file from Java resource.");
         }
@@ -112,7 +158,9 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
             // The camera has probably just been released, ignore.
         }
     }
-
+    
+    
+    	
     protected void processImage(byte[] data, int width, int height) {
         // First, downsample our image and convert it into a grayscale IplImage
         int f = SUBSAMPLING_FACTOR;
@@ -145,57 +193,84 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
         //float scaleY = (float)getHeight()/grayImage.height();
     	
     	if (faces != null) {
-    		int total = faces.total();
-    		for (int i = 0; i < total; i++) {
-    			CvRect r = new CvRect(cvGetSeqElem(faces, i));
-    			int x = r.x(), y = r.y(), w = r.width(), h = r.height();
-    			//lower bound x, lower bound y, upper bound x, upper bound y
-    			int[] coord = new int[4];
-    			coord[0] = x;
-    			coord[1] = y;
-    			coord[2] = x+w;
-    			coord[3] = y+h;
-    			fcoords.add(coord);
-    		}
+            int total = faces.total();
+            for (int i = 0; i < total; i++) {
+                CvRect r = new CvRect(cvGetSeqElem(faces, i));
+                int x = r.x(), y = r.y(), w = r.width(), h = r.height();
+                //lower bound x, lower bound y, upper bound x, upper bound y
+                int[] coord = new int[4];
+                coord[0] = x;
+                coord[1] = y;
+                coord[2] = x+w;
+                coord[3] = y+h;
+                fcoords.add(coord);
+            }
     	}
     	return fcoords;
     }
     
     @Override
     protected void onDraw(Canvas canvas) {
-        Paint paint = new Paint();
+    	Paint paint = new Paint();
         paint.setColor(Color.BLUE);
         paint.setTextSize(40);
 
-        String s = "Project Eden Baby:D";
+        String s = "Project Eden Baby";
         float textWidth = paint.measureText(s);
         canvas.drawText(s, (getWidth()-textWidth)/2, 40, paint);
 
         if (faces != null) {
+            float padding = 20;
             paint.setStrokeWidth(4);
             paint.setStyle(Paint.Style.STROKE);
             float scaleX = (float)getWidth()/grayImage.width();
             float scaleY = (float)getHeight()/grayImage.height();
+            float topLeftX, topLeftY, botRightX, botRightY;
+            float faceWidth;
+            float x,y,w,h;
+            float boxWidth = 150;
+            float boxHeight = 150;
             int total = faces.total();
             for (int i = 0; i < total; i++) {
                 CvRect r = new CvRect(cvGetSeqElem(faces, i));
-                int x = r.x(), y = r.y(), w = r.width(), h = r.height();
+                x = r.x(); y = r.y(); w = r.width(); 
+                h = r.height();
+                topLeftX = x*scaleX;
+                topLeftY = y*scaleY;
+                botRightX = (x+w)*scaleX;
+                botRightY = (y+h)*scaleY;
+                faceWidth = botRightX - topLeftX;
                 paint.setColor(Color.GREEN);
-                canvas.drawRect(x*scaleX, y*scaleY, (x+w)*scaleX, (y+h)*scaleY, paint);
+                canvas.drawRect(topLeftX, topLeftY, botRightX, botRightY, paint);
+                // Draw on left or right of face
+                paint.setColor(Color.BLUE);
+                if ((topLeftX + boxWidth + faceWidth + padding) < (float)getWidth()) {
+                    canvas.drawRect(topLeftX + faceWidth + padding, topLeftY, 
+                                    topLeftX + boxWidth + faceWidth + padding, topLeftY + boxHeight, paint);
+                }
+                else {
+                    canvas.drawRect(topLeftX - boxWidth - padding, topLeftY, 
+                                    botRightX - faceWidth - padding, topLeftY + boxHeight, paint);
+                }
+         
             }
+        
         }
     }
 }
-
 class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
     SurfaceHolder mHolder;
     Camera mCamera;
     Camera.PreviewCallback previewCallback;
+    EdenCamActivity mainContext;
+    int MAXICONNUM = 4;
+    int iconCounter;
     
     FaceCapture(Context context, Camera.PreviewCallback previewCallback) {
         super(context);
+        iconCounter = 0;
+        mainContext = (EdenCamActivity) context;
         this.previewCallback = previewCallback;
-
         // Install a SurfaceHolder.Callback so we get notified when the
         // underlying surface is created and destroyed.
         mHolder = getHolder();
@@ -205,8 +280,8 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
     //touch the designated area to trigger picture event
     @Override
     public boolean onTouchEvent(MotionEvent e) {
-    	//report touch position
-    	float x = e.getX();
+        //report touch position
+        float x = e.getX();
         float y = e.getY();
         
         //retrieve desired position
@@ -214,31 +289,45 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
         int action1 = e.getAction();
         //take picture when the pressure releases
         if (action1 == MotionEvent.ACTION_UP) {
-        	mCamera.takePicture(null, null, pictureCallback);
+            mCamera.takePicture(null, null, pictureCallback);
         }
     	
-    	return true;
+        return true;
     }
     
     //picture callback set up 
     PictureCallback pictureCallback = new PictureCallback() {
 
-		@Override
-		public void onPictureTaken(byte[] data, Camera camera) {
-			// Picture processing
-			Log.d("Camera","Picture Taken!");
-			mCamera.startPreview();
-		}
-    };
-    
-
+            @Override
+            public void onPictureTaken(byte[] data, Camera camera) {
+                // Picture processing
+                Log.d("Camera","Icon Picture Taken! Load the image to Cache!");
+                mCamera.startPreview();
+			
+                //decode raw bytes to bitmap format
+                Bitmap loadImage = BitmapFactory.decodeByteArray(data, 0, data.length);
+                if (iconCounter > MAXICONNUM) {
+                    //remove the first cached image and add the current one to the end
+                    Log.d("Shifting", "Hit the MAX, remove values");
+                    iconCounter--;
+                    mainContext.removeBitmapFromMemCache(String.valueOf(iconCounter));
+                    mainContext.addBitmapToMemoryCache(String.valueOf(iconCounter), loadImage);
+                    iconCounter++;
+				
+                } else {
+                    Log.d("CACHING", "CACHING");
+                    mainContext.addBitmapToMemoryCache(String.valueOf(iconCounter), loadImage);
+                    iconCounter++;
+                }
+            }
+        };
 
     public void surfaceCreated(SurfaceHolder holder) {
         // The Surface has been created, acquire the camera and tell it where
         // to draw.
         mCamera = Camera.open();
         try {
-           mCamera.setPreviewDisplay(holder);
+            mCamera.setPreviewDisplay(holder);
         } catch (IOException exception) {
             mCamera.release();
             mCamera = null;
@@ -303,7 +392,7 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
             mCamera.setPreviewCallbackWithBuffer(previewCallback);
             Camera.Size size = parameters.getPreviewSize();
             byte[] data = new byte[size.width*size.height*
-                    ImageFormat.getBitsPerPixel(parameters.getPreviewFormat())/8];
+                                   ImageFormat.getBitsPerPixel(parameters.getPreviewFormat())/8];
             mCamera.addCallbackBuffer(data);
         }
         mCamera.startPreview();
