@@ -70,6 +70,7 @@ int drawable com_facebook_usersettingsfragment_background_gradient 0x7f02001f
 int drawable ic_launcher 0x7f020020
 int id action_settings 0x7f04001b
 int id button1 0x7f040004
+int id button_enter 0x7f04001c
 int id com_facebook_login_activity_progress_bar 0x7f040008
 int id com_facebook_picker_activity_circle 0x7f040007
 int id com_facebook_picker_checkbox 0x7f04000a
@@ -89,7 +90,7 @@ int id com_facebook_placepickerfragment_search_box_stub 0x7f040015
 int id com_facebook_usersettingsfragment_login_button 0x7f04001a
 int id com_facebook_usersettingsfragment_logo_image 0x7f040018
 int id com_facebook_usersettingsfragment_profile_name 0x7f040019
-int id imageView1 0x7f040005
+int id gridview 0x7f040005
 int id large 0x7f040002
 int id normal 0x7f040001
 int id picker_subtitle 0x7f040017

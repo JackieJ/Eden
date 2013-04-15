@@ -1,10 +1,9 @@
 package com.project.eden;
  
-
-
 import android.net.Uri;
 import android.os.Bundle;
 import android.annotation.SuppressLint;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -33,10 +32,6 @@ import android.widget.FrameLayout;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
-//face detection using android face detector
-import android.media.FaceDetector;
-import android.media.FaceDetector.Face;
-
 //Java IO buffer utils
 import java.io.File;
 import java.io.IOException;
@@ -44,10 +39,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Queue;
 
 //Java OpenCV Wrapper Library
 import com.googlecode.javacpp.Loader;
@@ -63,11 +55,9 @@ import com.googlecode.javacv.ObjectFinder;
 import static com.googlecode.javacv.cpp.opencv_core.*;
 import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 import static com.googlecode.javacv.cpp.opencv_objdetect.*;
-import static com.googlecode.javacv.cpp.opencv_highgui.*;
 
 @SuppressLint("NewApi")
 public class EdenCamActivity extends Activity {
-	private static final String DISK_CACHE_SUBDIR = "peoplepictures";
     //memory cache for bitmap
     private LruCache<String, Bitmap> mMemoryCache;
 	
@@ -89,13 +79,55 @@ public class EdenCamActivity extends Activity {
     public static int offset_x = 20;
     public static int offset_y = 20;
     public static ArrayList<String> info_list = new ArrayList<String>();
+    public int boxX1 = -1, boxY1 = -1, boxX2 = -1, boxY2 = -1;
+    //Face tracker
+    public int faceTracker = 0;
+    //queue for the bitmap memory-cached keys
+    public ArrayDeque<String> cachedKeyQueue = new ArrayDeque<String>();
+    public int MAXCACHENUM = 5;
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+
+    	//caching setup 
+    	final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
+        final int cacheSize = maxMemory / 8;
+        mMemoryCache = new LruCache<String, Bitmap>(cacheSize) {
+            @Override
+            protected int sizeOf(String key, Bitmap bitmap) {
+                // The cache size will be measured in kilobytes rather than
+                // number of items.
+                return bitmap.getByteCount() / 1024;
+            }
+        };
+		
+        // Hide the window title.
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        super.onCreate(savedInstanceState);
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        // Create our Preview view and set it as the content of our activity.
+        try {
+            layout = new FrameLayout(this);
+            faceReco = new FaceRecognition(this);
+            faceCapture = new FaceCapture(this, faceReco);
+            layout.addView(faceCapture);
+            layout.addView(faceReco);
+            setContentView(layout);
+        } catch (IOException e) {
+            e.printStackTrace();
+            new AlertDialog.Builder(this).setMessage(e.getMessage()).create().show();
+        }
+    }
+	
     public void addItem() {
     	info_list.add("School");
     	info_list.add("Relationship");
     	info_list.add("Interests");
     }
-	public int boxX1 = -1, boxY1 = -1, boxX2 = -1, boxY2 = -1;
-    
+	
     public void displayDialog(int center_x, int center_y, int x, int y) {
         if (counter_display==0) {
             addItem();
@@ -175,56 +207,11 @@ public class EdenCamActivity extends Activity {
         Intent launchBrowser = new Intent(Intent.ACTION_VIEW, uriUrl);
         startActivity(launchBrowser);
     }
-    
-    
-    //Face tracker
-    public int faceTracker = 0;
-    
-    //queue for the bitmap memory-cached keys
-    public ArrayDeque<String> cachedKeyQueue = new ArrayDeque<String>();
-    public int MAXCACHENUM = 5;
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        //caching setup 
-    	final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
-        final int cacheSize = maxMemory / 8;
-        mMemoryCache = new LruCache<String, Bitmap>(cacheSize) {
-            @Override
-            protected int sizeOf(String key, Bitmap bitmap) {
-                // The cache size will be measured in kilobytes rather than
-                // number of items.
-                return bitmap.getByteCount() / 1024;
-            }
-        };
-		
-        // Hide the window title.
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-
-        super.onCreate(savedInstanceState);
-
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-        // Create our Preview view and set it as the content of our activity.
-        try {
-            layout = new FrameLayout(this);
-            faceReco = new FaceRecognition(this);
-            faceCapture = new FaceCapture(this, faceReco);
-            layout.addView(faceCapture);
-            layout.addView(faceReco);
-            setContentView(layout);
-        } catch (IOException e) {
-            e.printStackTrace();
-            new AlertDialog.Builder(this).setMessage(e.getMessage()).create().show();
-        }
-    }
-	
     //bitmap memory cache handling
     //Current: the keys are numbers 
-    //TODO: the keys should be the meta data scraped by the facebook API
     public void addBitmapToMemoryCache(String key, Bitmap bitmap) {
         if (getBitmapFromMemCache(key) == null) {
-            mMemoryCache.put(key, bitmap);
-	        
+            mMemoryCache.put(key, bitmap);        
         }
     }
 
@@ -234,8 +221,7 @@ public class EdenCamActivity extends Activity {
 	
     public Bitmap removeBitmapFromMemCache(String key) {
     	return mMemoryCache.remove(key);
-    }
-    
+    }  
 }
 
 class FaceRecognition extends View implements Camera.PreviewCallback {
@@ -421,7 +407,7 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
                 //paint.setColor(Color.GREEN);
                 paint.setARGB(120,216,216,216);
                 
-                canvas.drawRect(topLeftX, topLeftY, botRightX, botRightY, paint);
+                //canvas.drawRect(topLeftX, topLeftY, botRightX, botRightY, paint);
                 eContext.rect_face_reg = new Rect((int)topLeftX, (int)topLeftY, (int)botRightX, (int)botRightY);
                 // Draw on left or right of face
                 //paint.setColor(Color.BLUE);
@@ -560,9 +546,9 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
             		mainContext.boxY1 != -1 &&
             		mainContext.boxY2 != -1) {
         		if (mainContext.rect_face_reg.contains((int)x, (int)y)) {
-            	mainContext.displayDialog(mainContext.boxX1, mainContext.boxY1, mainContext.boxX2, mainContext.boxY2);
+        			//mainContext.displayDialog(mainContext.boxX1, mainContext.boxY1, mainContext.boxX2, mainContext.boxY2);
         		}
-        		}
+        	}
             
         	mCamera.takePicture(null, null, pictureCallback);
         }
@@ -618,14 +604,14 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
                 Loader.load(opencv_features2d.class);
                 
                 //iterate through images
-                
+                /*
                 ObjectFinder objectFinder = new ObjectFinder(grayImageSrc_1);
                 
                 
                 double[] ROIPOINTS = objectFinder.find(grayImageSrc_1);
                 
                 Log.d("Region of Interests", String.valueOf(ROIPOINTS.length));
-                
+                */
                 int qSize = mainContext.cachedKeyQueue.size();
                 
                 

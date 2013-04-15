@@ -15,11 +15,11 @@ public class ImageAdapter extends BaseAdapter {
     private Context mContext;
     String urls[];
     
-    public ImageAdapter(Context c, String[] urls) {
+    ImageAdapter(Context c, String[] urls) {
     	this.urls = urls;
     	mContext = c;
     }
-    public ImageAdapter(Context c) {
+    ImageAdapter(Context c) {
         mContext = c;
     }
 
@@ -41,9 +41,9 @@ public class ImageAdapter extends BaseAdapter {
         ImageView imageView;
         if (convertView == null) {  // if it's not recycled, initialize some attributes
             imageView = new ImageView(mContext);
-            imageView.setLayoutParams(new GridView.LayoutParams(85, 85));
+            imageView.setLayoutParams(new GridView.LayoutParams(170, 165));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            imageView.setPadding(8, 8, 8, 8);
+            imageView.setPadding(3, 3, 3, 3);
         } else {
             imageView = (ImageView) convertView;
         }

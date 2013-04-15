@@ -5,5 +5,11 @@
         android:orderInCategory="100"
         android:showAsAction="never"
         android:title="@string/action_settings"/>
-
+	
+     <item android:id="@+id/button_enter"
+          android:title="@string/button_enter"
+          android:showAsAction="ifRoom"
+          android:gravity="center"
+           />
+    
 </menu>
