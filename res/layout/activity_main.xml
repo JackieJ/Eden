@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="horizontal" 
     android:background="@drawable/app_wallpaper">
-
+	
     <GridView
 	 	android:id="@+id/gridview"
 	    android:layout_width="fill_parent"

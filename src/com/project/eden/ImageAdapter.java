@@ -10,6 +10,9 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
+import android.view.Window;
+import android.app.Activity;
+import android.support.v4.app.FragmentActivity;
 
 public class ImageAdapter extends BaseAdapter {
     private Context mContext;
@@ -22,7 +25,7 @@ public class ImageAdapter extends BaseAdapter {
     ImageAdapter(Context c) {
         mContext = c;
     }
-
+    
     public int getCount() {
         return urls.length;
     }
@@ -47,20 +50,20 @@ public class ImageAdapter extends BaseAdapter {
         } else {
             imageView = (ImageView) convertView;
         }
-        
+        ((EdenMain) mContext).progressBarInvisible(true);
         new DownloadImageTask(imageView).execute(urls[position]);
-
         return imageView;
     }
     
     private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
         ImageView bmImage;
-
+              
         public DownloadImageTask(ImageView bmImage) {
             this.bmImage = bmImage;
         }
-
+        
         protected Bitmap doInBackground(String... urls) {
+        	 
             String urldisplay = urls[0];
             Bitmap mIcon11 = null;
             try {
@@ -75,6 +78,7 @@ public class ImageAdapter extends BaseAdapter {
 
         protected void onPostExecute(Bitmap result) {
             bmImage.setImageBitmap(result);
+            ((EdenMain) mContext).progressBarInvisible(false);
         }
     }
 }
