@@ -10,9 +10,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
-import android.view.Window;
-import android.app.Activity;
-import android.support.v4.app.FragmentActivity;
 
 public class ImageAdapter extends BaseAdapter {
     private Context mContext;
