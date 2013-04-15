@@ -68,7 +68,6 @@ import static com.googlecode.javacv.cpp.opencv_highgui.*;
 @SuppressLint("NewApi")
 public class EdenCamActivity extends Activity {
 	private static final String DISK_CACHE_SUBDIR = "peoplepictures";
-	public File diskCache = DiskLruImageCache.getDiskCacheDir(this, DISK_CACHE_SUBDIR);
     //memory cache for bitmap
     private LruCache<String, Bitmap> mMemoryCache;
 	
@@ -242,13 +241,18 @@ public class EdenCamActivity extends Activity {
 class FaceRecognition extends View implements Camera.PreviewCallback {
 	
     public static final int SUBSAMPLING_FACTOR = 4;
-
+    
+    String[] names = {" Robert Nguyen (Bravo)","A-Tion Zhuo Li","Shulin Jia", "Jackie Jin"};
+    String[] schools = {"UCLA", "University of California, Los Angeles","UCLA", ""};
+    String[] relationships = {"Single","Single","Single","Single"};
+    String[] froms = {"Garden Grove, California", " Dalian, China", "San Diego, California", "Kunming, Yunnan"};
     //OpenCV face detection
     private IplImage grayImage;
     private CvHaarClassifierCascade classifier;
     private CvMemStorage storage;
     private CvSeq faces;
     EdenCamActivity eContext;
+    
     
     public FaceRecognition(EdenCamActivity context) throws IOException {
         super(context);
@@ -338,11 +342,8 @@ class FaceRecognition extends View implements Camera.PreviewCallback {
         paint.setColor(Color.BLUE);
         paint.setTextSize(40);
         paint.setAntiAlias(true);
-
-
-        String s = "Project Eden Baby";
-        float textWidth = paint.measureText(s);
-        canvas.drawText(s, (getWidth()-textWidth)/2, 40, paint);
+        
+        	
         int mainPad = 30;
         int mainPad2 = 10;
         int mainHeight = 96;
@@ -487,6 +488,9 @@ class FaceCapture extends SurfaceView implements SurfaceHolder.Callback {
         super(context);
         mainContext = (EdenCamActivity) context;
         this.previewCallback = previewCallback;
+        //preload the fixed images
+        
+        
         // Install a SurfaceHolder.Callback so we get notified when the
         // underlying surface is created and destroyed.
         mHolder = getHolder();
