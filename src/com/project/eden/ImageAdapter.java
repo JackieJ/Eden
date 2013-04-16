@@ -15,6 +15,8 @@ public class ImageAdapter extends BaseAdapter {
     private Context mContext;
     String urls[];
     
+    
+    
     ImageAdapter(Context c, String[] urls) {
     	this.urls = urls;
     	mContext = c;
@@ -27,12 +29,12 @@ public class ImageAdapter extends BaseAdapter {
         return urls.length;
     }
 
-    public Object getItem(int position) {
-        return null;
+    public String getItem(int position) {
+        return urls[position];
     }
 
     public long getItemId(int position) {
-        return 0;
+        return position;
     }
 
     // create a new ImageView for each item referenced by the Adapter
@@ -43,7 +45,7 @@ public class ImageAdapter extends BaseAdapter {
             imageView = new ImageView(mContext);
             imageView.setLayoutParams(new GridView.LayoutParams(170, 165));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            imageView.setPadding(3, 3, 3, 3);
+            imageView.setPadding(0, 0, 0, 0);
         } else {
             imageView = (ImageView) convertView;
         }
